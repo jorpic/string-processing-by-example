@@ -1,0 +1,68 @@
+name:                string-processing-by-example
+version:             0.1.0.0
+github:              "jorpic/string-processing-by-example"
+license:             MIT
+author:              "Max Taldykin"
+maintainer:          "jorpic@gmail.com"
+copyright:           "Max Taldykin"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Development
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/jorpic/string-processing-by-example#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+default-extensions:
+- ImportQualifiedPost
+- LambdaCase
+- NamedFieldPuns
+- NoMonomorphismRestriction
+- OverloadedStrings
+- RecordWildCards
+- TupleSections
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  string-processing-by-example:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - string-processing-by-example
+
+tests:
+  string-processing-by-example-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - string-processing-by-example
+    - hspec
