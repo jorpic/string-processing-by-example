@@ -5,16 +5,19 @@ module StringExpr.Eval
   , matchesSuffix
   ) where
 
+import Prelude hiding ((!!))
+import Data.List.Safe ((!!))
 import Data.Text (Text)
 import Data.Text qualified as T
 import StringExpr.AST
 
-eval :: Text -> Expr -> Either String Text
-eval t = \case
-  Input -> pure t
-  SubStr ex start end
-    -> substr <$> evalPos t start <*> evalPos t end <*> eval t ex
-  _ -> Left "not implemented"
+eval :: [Text] -> AtomicExpr -> Either String Text
+eval inputs = \case
+  SubStr i start end -> do
+    txt <- mapErr show (inputs !! i)
+    substr txt
+      <$> evalPos txt start
+      <*> evalPos txt end
 
 evalPos :: Text -> Pos -> Either String Int
 evalPos t = \case
@@ -30,20 +33,16 @@ evalPos t = \case
           , rxa `matchesSuffix` a
           , rxb `matchesPrefix` b
           ]
-    in case length matches of
-         ml | 0 <= c && c < ml        -> pure $ matches !! c
-            | negate ml <= c && c < 0 -> pure $ matches !! (ml + c)
-            | otherwise               -> Left "not enough matches"
+    in mapErr (const "not enough matches")
+      $ matches !! (if c >= 0 then c else length matches + c)
   where
     len = T.length t
-
 
 matchesChar :: Token -> Char -> Bool
 matchesChar = \case
   SomeOf cls -> isCls cls
   SomeNotOf cls -> not . isCls cls
   _ -> const False
-
 
 matchesPrefix :: RegExp -> Text -> Bool
 matchesPrefix [] _ = True
@@ -55,5 +54,10 @@ matchesPrefix (r : rx) txt
 matchesSuffix :: RegExp -> Text -> Bool
 matchesSuffix rx = matchesPrefix (reverse rx) . T.reverse
 
-substr :: Int -> Int -> Text -> Text
-substr start end = T.take (end - start + 1) . T.drop start
+
+substr :: Text -> Int -> Int -> Text
+substr txt start end = T.take (end - start + 1) $ T.drop start txt
+
+mapErr :: (e -> e') -> Either e x -> Either e' x
+mapErr f = either (Left . f) pure
+

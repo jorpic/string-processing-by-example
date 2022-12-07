@@ -8,8 +8,8 @@ main = hspec spec
 spec :: Spec
 spec = do
   describe "substring with CPos" $ do
-    let t = "0123456789ABCDEF"
-    let p i j = SubStr Input (CPos i) (CPos j)
+    let t = ["0123456789ABCDEF"]
+    let p i j = SubStr (Input 0) (CPos i) (CPos j)
     it "just works"
       $ eval t (p    5   (-5)) `shouldBe` Right "56789AB"
     it "is ok with negative bounds"
@@ -46,11 +46,11 @@ spec = do
 
   describe "example #2 from the paper" $ do
     let p = SubStr
-            Input
+            (Input 0)
             (Pos [] [SomeOf NumTok] 0)
             (CPos (-1))
-    it "1" $ eval "BTR KRNL WK CORN 15Z"      p `shouldBe` Right "15Z"
-    it "2" $ eval "CAMP DRY DBL NDL 3.6 OZ"   p `shouldBe` Right "3.6 OZ"
-    it "3" $ eval "CHORE BOY HD SC SPNG 1 PK" p `shouldBe` Right "1 PK"
-    it "4" $ eval "FRENCH WORCESTERSHIRE 5 Z" p `shouldBe` Right "5 Z"
-    it "5" $ eval "O F TOMATO PASTE 6 OZ"     p `shouldBe` Right "6 OZ"
+    it "1" $ eval ["BTR KRNL WK CORN 15Z"]      p `shouldBe` Right "15Z"
+    it "2" $ eval ["CAMP DRY DBL NDL 3.6 OZ"]   p `shouldBe` Right "3.6 OZ"
+    it "3" $ eval ["CHORE BOY HD SC SPNG 1 PK"] p `shouldBe` Right "1 PK"
+    it "4" $ eval ["FRENCH WORCESTERSHIRE 5 Z"] p `shouldBe` Right "5 Z"
+    it "5" $ eval ["O F TOMATO PASTE 6 OZ"]     p `shouldBe` Right "6 OZ"

@@ -44,6 +44,7 @@ library:
   source-dirs: src
   dependencies:
     - text
+    - listsafe
 
 executables:
   string-processing-by-example:

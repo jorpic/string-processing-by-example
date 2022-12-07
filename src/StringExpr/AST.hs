@@ -39,12 +39,7 @@ data Pos
   | Pos RegExp RegExp Int
   deriving (Eq, Show)
 
-
-data Expr
-  = Input
-  | SubStr Expr Pos Pos
+data AtomicExpr
+  = SubStr Int Pos Pos
   -- ^ SubStr(inp, CPos(0), CPos(-1)) == inp
-  | SubStr2 Expr RegExp Int
-  -- ^ SubStr(inp, Pos(ε, r, c), Pos(r, ε, c))
-  -- c-th occurence of regex r
   deriving (Eq, Show)
