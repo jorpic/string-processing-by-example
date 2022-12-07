@@ -53,7 +53,7 @@ matchesPrefix (r : rx) txt
     in not (T.null as) && matchesPrefix rx bs
 
 matchesSuffix :: RegExp -> Text -> Bool
-matchesSuffix rx = matchesPrefix rx . T.reverse
+matchesSuffix rx = matchesPrefix (reverse rx) . T.reverse
 
 substr :: Int -> Int -> Text -> Text
 substr start end = T.take (end - start + 1) . T.drop start
