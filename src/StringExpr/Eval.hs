@@ -1,30 +1,49 @@
 module StringExpr.Eval
-  ( eval
+  ( EvalContext(..)
+  , EvalErr
+  , runEval
+  , evalAtomic
   , evalPos
   , matchesPrefix
   , matchesSuffix
   ) where
 
 import Prelude hiding ((!!))
+import Control.Monad.Except
+import Control.Monad.Reader
+import Data.Functor.Identity
 import Data.List.Safe ((!!))
 import Data.Text (Text)
 import Data.Text qualified as T
 import StringExpr.AST
 
-eval :: [Text] -> AtomicExpr -> Either String Text
-eval inputs = \case
-  SubStr i start end -> do
-    txt <- mapErr show (inputs !! i)
+
+data EvalContext = EvalContext
+  { inputs :: [Text]
+  }
+
+type EvalErr = String
+type EvalT m a = ReaderT EvalContext (ExceptT EvalErr m) a
+
+runEval :: EvalT Identity a -> EvalContext -> Either EvalErr a
+runEval f = runIdentity . runExceptT . runReaderT f
+
+evalAtomic
+  :: (MonadReader EvalContext m, MonadError EvalErr m)
+  => AtomicExpr -> m Text
+evalAtomic = \case
+  SubStr (Input i) start end -> do
+    txt <- asks inputs >>= liftError show . (!! i)
     substr txt
       <$> evalPos txt start
       <*> evalPos txt end
 
-evalPos :: Text -> Pos -> Either String Int
+evalPos :: MonadError EvalErr m => Text -> Pos -> m Int
 evalPos t = \case
   CPos p
     | 0 <= p && p < len        -> pure p
     | negate len <= p && p < 0 -> pure $ len + p
-    | otherwise                -> Left "CPos is out of range"
+    | otherwise                -> throwError "CPos is out of range"
   Pos rxa rxb c ->
     let matches =
           [ i
@@ -33,8 +52,9 @@ evalPos t = \case
           , rxa `matchesSuffix` a
           , rxb `matchesPrefix` b
           ]
-    in mapErr (const "not enough matches")
-      $ matches !! (if c >= 0 then c else length matches + c)
+        ix = if c >= 0 then c else c + length matches
+    in liftError (const "not enough matches")
+      $ matches !! ix
   where
     len = T.length t
 
@@ -58,6 +78,5 @@ matchesSuffix rx = matchesPrefix (reverse rx) . T.reverse
 substr :: Text -> Int -> Int -> Text
 substr txt start end = T.take (end - start + 1) $ T.drop start txt
 
-mapErr :: (e -> e') -> Either e x -> Either e' x
-mapErr f = either (Left . f) pure
-
+liftError :: MonadError e' m => (e -> e') -> Either e x -> m x
+liftError f = liftEither .  either (Left . f) pure

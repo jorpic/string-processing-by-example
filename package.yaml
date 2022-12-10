@@ -26,6 +26,7 @@ default-extensions:
 - LambdaCase
 - NamedFieldPuns
 - NoMonomorphismRestriction
+- FlexibleContexts
 - OverloadedStrings
 - RecordWildCards
 - TupleSections
@@ -45,6 +46,7 @@ library:
   dependencies:
     - text
     - listsafe
+    - mtl
 
 executables:
   string-processing-by-example:
@@ -68,3 +70,4 @@ tests:
     dependencies:
     - string-processing-by-example
     - hspec
+    - text

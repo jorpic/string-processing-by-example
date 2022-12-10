@@ -37,9 +37,8 @@ isCls = \case
 data Pos
   = CPos Int
   | Pos RegExp RegExp Int
-  deriving (Eq, Show)
 
+newtype Input = Input Int
 data AtomicExpr
-  = SubStr Int Pos Pos
+  = SubStr Input Pos Pos
   -- ^ SubStr(inp, CPos(0), CPos(-1)) == inp
-  deriving (Eq, Show)

@@ -1,9 +1,13 @@
+import Data.Text (Text)
 import  Test.Hspec
 
 import StringExpr
 
 main :: IO ()
 main = hspec spec
+
+eval :: [Text] -> AtomicExpr -> Either EvalErr Text
+eval t p = runEval (evalAtomic p) $ EvalContext t
 
 spec :: Spec
 spec = do
