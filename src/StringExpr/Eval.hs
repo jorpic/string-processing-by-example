@@ -20,31 +20,40 @@ import StringExpr.AST
 
 data EvalContext = EvalContext
   { inputs :: [Text]
+  , loopVars :: [Int]
   }
 
 type EvalErr = String
 type EvalT m a = ReaderT EvalContext (ExceptT EvalErr m) a
+type EvalM m = (MonadReader EvalContext m, MonadError EvalErr m)
 
 runEval :: EvalT Identity a -> EvalContext -> Either EvalErr a
 runEval f = runIdentity . runExceptT . runReaderT f
 
-evalAtomic
-  :: (MonadReader EvalContext m, MonadError EvalErr m)
-  => AtomicExpr -> m Text
+evalAtomic :: EvalM m => AtomicExpr -> m Text
 evalAtomic = \case
   SubStr (Input i) start end -> do
-    txt <- asks inputs >>= liftError show . (!! i)
+    txt <- asks ((!! i) . inputs) >>= liftError show
     substr txt
       <$> evalPos txt start
       <*> evalPos txt end
+  Loop v f -> throwError "NOT IMPLEMENTED"
 
-evalPos :: MonadError EvalErr m => Text -> Pos -> m Int
+evalInt :: EvalM m => IntExpr -> m Int
+evalInt = \case
+  IntConst i -> pure i
+  IntExpr a (LoopVar var) b -> do
+    val <- asks ((!! var) . loopVars)
+      >>= liftError (\_ -> "loop var is out of range " ++ show var)
+    pure $ a * val + b
+
+evalPos :: EvalM m => Text -> Pos -> m Int
 evalPos t = \case
   CPos p
     | 0 <= p && p < len        -> pure p
     | negate len <= p && p < 0 -> pure $ len + p
     | otherwise                -> throwError "CPos is out of range"
-  Pos rxa rxb c ->
+  Pos rxa rxb c -> do
     let matches =
           [ i
           | i <- [0..len]
@@ -52,9 +61,9 @@ evalPos t = \case
           , rxa `matchesSuffix` a
           , rxb `matchesPrefix` b
           ]
-        ix = if c >= 0 then c else c + length matches
-    in liftError (const "not enough matches")
-      $ matches !! ix
+    c' <- evalInt c
+    let ix = if c' >= 0 then c' else c' + length matches
+    liftError (const "not enough matches") $ matches !! ix
   where
     len = T.length t
 

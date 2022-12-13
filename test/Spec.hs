@@ -7,7 +7,7 @@ main :: IO ()
 main = hspec spec
 
 eval :: [Text] -> AtomicExpr -> Either EvalErr Text
-eval t p = runEval (evalAtomic p) $ EvalContext t
+eval t p = runEval (evalAtomic p) $ EvalContext t []
 
 spec :: Spec
 spec = do
@@ -51,7 +51,7 @@ spec = do
   describe "example #2 from the paper" $ do
     let p = SubStr
             (Input 0)
-            (Pos [] [SomeOf NumTok] 0)
+            (Pos [] [SomeOf NumTok] (IntConst 0))
             (CPos (-1))
     it "1" $ eval ["BTR KRNL WK CORN 15Z"]      p `shouldBe` Right "15Z"
     it "2" $ eval ["CAMP DRY DBL NDL 3.6 OZ"]   p `shouldBe` Right "3.6 OZ"

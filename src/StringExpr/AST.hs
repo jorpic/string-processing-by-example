@@ -1,6 +1,7 @@
 module StringExpr.AST where
 
 import Data.Char (generalCategory, GeneralCategory(..), isAlpha, isDigit)
+import Data.Text (Text)
 
 
 -- Regexps are deliberately limited in their expressiveness.
@@ -33,12 +34,28 @@ isCls = \case
   HyphenTok -> (== DashPunctuation) . generalCategory
   OtherTok c -> (== c) . generalCategory
 
-
 data Pos
   = CPos Int
-  | Pos RegExp RegExp Int
+  | Pos RegExp RegExp IntExpr
+
+newtype StringExpr = Switch [(Predicate, TraceExpr)]
+type Predicate = [[Match]] -- disjunction of conjunctions
+
+data IntExpr
+  = IntConst Int
+  | IntExpr Int LoopVar Int -- k1 * var + k2
+
+data Match
+  = Match Input RegExp Int
+  | NotMatch Input RegExp Int
+
+newtype TraceExpr = Concat [AtomicExpr]
 
 newtype Input = Input Int
+newtype LoopVar = LoopVar Int
+
 data AtomicExpr
-  = SubStr Input Pos Pos
+  = ConstStr Text
+  | SubStr Input Pos Pos
   -- ^ SubStr(inp, CPos(0), CPos(-1)) == inp
+  | Loop LoopVar TraceExpr
