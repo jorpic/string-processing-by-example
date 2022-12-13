@@ -1,6 +1,10 @@
 module StringExpr.AST where
 
-import Data.Char (generalCategory, GeneralCategory(..), isAlpha, isDigit)
+import Data.Char
+  ( generalCategory
+  , GeneralCategory(..)
+  , isAlpha, isDigit, isUpper
+  )
 import Data.Text (Text)
 
 
@@ -23,6 +27,7 @@ data Token
 -- Whitespace characters, All characters.
 data CharClass
   = AlphTok | NumTok | NonDigitTok | HyphenTok
+  | SlashTok | UpperTok
   | OtherTok GeneralCategory
   deriving (Eq, Show)
 
@@ -32,6 +37,8 @@ isCls = \case
   NumTok -> isDigit
   NonDigitTok -> not . isDigit
   HyphenTok -> (== DashPunctuation) . generalCategory
+  SlashTok -> (== '/')
+  UpperTok -> isUpper
   OtherTok c -> (== c) . generalCategory
 
 data Pos
@@ -57,5 +64,9 @@ newtype LoopVar = LoopVar Int
 data AtomicExpr
   = ConstStr Text
   | SubStr Input Pos Pos
-  -- ^ SubStr(inp, CPos(0), CPos(-1)) == inp
+  -- SubStr(inp, CPos(0), CPos(-1)) == inp
+  -- SubStr2 inp r c := SubStr(inp, Pos(ε, r, c), Pos(r, ε, c))
   | Loop LoopVar TraceExpr
+
+substr2 :: Input -> RegExp -> IntExpr -> AtomicExpr
+substr2 i r c = SubStr i (Pos [] r c) (Pos r [] c)

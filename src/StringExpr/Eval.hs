@@ -1,5 +1,5 @@
 module StringExpr.Eval
-  ( EvalContext(..)
+  ( EvalContext
   , EvalErr
   , runEval
   , evalAtomic
@@ -11,24 +11,30 @@ module StringExpr.Eval
 import Prelude hiding ((!!))
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Writer.Lazy -- (tell, execWriterT)
 import Data.Functor.Identity
 import Data.List.Safe ((!!))
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.IntMap (IntMap)
+import Data.IntMap qualified as IntMap
 import StringExpr.AST
 
 
 data EvalContext = EvalContext
   { inputs :: [Text]
-  , loopVars :: [Int]
+  , loopVars :: IntMap Int
   }
 
 type EvalErr = String
 type EvalT m a = ReaderT EvalContext (ExceptT EvalErr m) a
 type EvalM m = (MonadReader EvalContext m, MonadError EvalErr m)
 
-runEval :: EvalT Identity a -> EvalContext -> Either EvalErr a
-runEval f = runIdentity . runExceptT . runReaderT f
+runEval :: EvalT Identity a -> [Text] -> Either EvalErr a
+runEval f xt
+  = runIdentity $ runExceptT $ runReaderT f
+  $ EvalContext xt IntMap.empty
+
 
 evalAtomic :: EvalM m => AtomicExpr -> m Text
 evalAtomic = \case
@@ -37,14 +43,26 @@ evalAtomic = \case
     substr txt
       <$> evalPos txt start
       <*> evalPos txt end
-  Loop v f -> throwError "NOT IMPLEMENTED"
+  Loop (LoopVar v) f -> do
+    let setLoopVarTo i c = c {loopVars = IntMap.insert v i $ loopVars c}
+    let whileNotErr = (`catchError` (\_ -> pure ()))
+    let iter :: (MonadWriter Text m, EvalM m) => Int -> m ()
+        iter i = local (setLoopVarTo i)
+          $ whileNotErr
+          $ evalTrace f >>= tell >> iter (i+1)
+    -- writer here concats results of successful iterations
+    execWriterT $ iter 0
+
+evalTrace :: EvalM m => TraceExpr -> m Text
+evalTrace (Concat xs) = T.concat <$> mapM evalAtomic xs
+
 
 evalInt :: EvalM m => IntExpr -> m Int
 evalInt = \case
   IntConst i -> pure i
   IntExpr a (LoopVar var) b -> do
-    val <- asks ((!! var) . loopVars)
-      >>= liftError (\_ -> "loop var is out of range " ++ show var)
+    val <- asks (IntMap.lookup var . loopVars)
+      >>= maybe (throwError $ "loop var is out of range " ++ show var) pure
     pure $ a * val + b
 
 evalPos :: EvalM m => Text -> Pos -> m Int

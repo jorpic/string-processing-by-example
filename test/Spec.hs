@@ -7,7 +7,7 @@ main :: IO ()
 main = hspec spec
 
 eval :: [Text] -> AtomicExpr -> Either EvalErr Text
-eval t p = runEval (evalAtomic p) $ EvalContext t []
+eval t p = runEval (evalAtomic p) t
 
 spec :: Spec
 spec = do
@@ -58,3 +58,24 @@ spec = do
     it "3" $ eval ["CHORE BOY HD SC SPNG 1 PK"] p `shouldBe` Right "1 PK"
     it "4" $ eval ["FRENCH WORCESTERSHIRE 5 Z"] p `shouldBe` Right "5 Z"
     it "5" $ eval ["O F TOMATO PASTE 6 OZ"]     p `shouldBe` Right "6 OZ"
+
+  describe "example #3 from the paper" $ do
+    let p = SubStr
+            (Input 0)
+            (CPos 0)
+            (Pos [SomeOf SlashTok] [] (IntConst (-1)))
+    it "1" $ eval ["Company/Code/index.html"] p
+      `shouldBe` Right "Company/Code"
+    it "2" $ eval ["Company/Docs/Spec/specs.doc"] p
+      `shouldBe` Right "Company/Docs/Spec/"
+
+  describe "example #4 from the paper" $ do
+    let w = LoopVar 0
+    let p = Loop w
+            (Concat [substr2 (Input 0) [SomeOf UpperTok] (IntExpr 1 w 0)])
+    it "1" $ eval ["International Business Machines"] p
+      `shouldBe` Right "IBM"
+    it "2" $ eval ["Principles Of Programming Languages"] p
+      `shouldBe` Right "POPL"
+    it "3" $ eval ["International Conference on Software Engineering"] p
+      `shouldBe` Right "ICSE"

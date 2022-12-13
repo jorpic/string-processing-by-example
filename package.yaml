@@ -45,6 +45,7 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+    - containers
     - text
     - listsafe
     - mtl
