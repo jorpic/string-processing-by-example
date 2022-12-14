@@ -71,19 +71,20 @@ evalPos t = \case
     | 0 <= p && p < len        -> pure p
     | negate len <= p && p < 0 -> pure $ len + p
     | otherwise                -> throwError "CPos is out of range"
+    where
+      len = T.length t
   Pos rxa rxb c -> do
+    -- split "abc" == [(0,"a","abc"),(1,"ab","bc"),(2,"abc","c")]
+    let split s = zip3 [0..] (tail $ T.inits s) (T.tails s)
     let matches =
           [ i
-          | i <- [0..len]
-          , let (a, b) = T.splitAt i t
+          | (i, a, b) <- split t
           , rxa `matchesSuffix` a
           , rxb `matchesPrefix` b
           ]
     c' <- evalInt c
     let ix = if c' >= 0 then c' else c' + length matches
     liftError (const "not enough matches") $ matches !! ix
-  where
-    len = T.length t
 
 matchesChar :: Token -> Char -> Bool
 matchesChar = \case

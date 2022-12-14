@@ -65,7 +65,7 @@ spec = do
             (CPos 0)
             (Pos [SomeOf SlashTok] [] (IntConst (-1)))
     it "1" $ eval ["Company/Code/index.html"] p
-      `shouldBe` Right "Company/Code"
+      `shouldBe` Right "Company/Code/"
     it "2" $ eval ["Company/Docs/Spec/specs.doc"] p
       `shouldBe` Right "Company/Docs/Spec/"
 
