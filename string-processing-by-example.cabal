@@ -79,6 +79,9 @@ test-suite string-processing-by-example-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Eval
+      Examples
+      Utils
       Paths_string_processing_by_example
   hs-source-dirs:
       test

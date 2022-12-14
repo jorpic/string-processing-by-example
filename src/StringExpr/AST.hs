@@ -3,7 +3,7 @@ module StringExpr.AST where
 import Data.Char
   ( generalCategory
   , GeneralCategory(..)
-  , isAlpha, isDigit, isUpper
+  , isAlpha, isDigit, isUpper, isPrint
   )
 import Data.Text (Text)
 
@@ -21,14 +21,10 @@ data Token
   | SomeNotOf CharClass
   deriving (Eq, Show)
 
--- Numeric Digits (0-9),
--- Alphabets (a-zA-Z), Lowercase alphabets (a-z), Uppercase alphabets (A-Z),
--- Accented alphabets, Alphanumeric characters,
--- Whitespace characters, All characters.
 data CharClass
-  = AlphTok | NumTok | NonDigitTok | HyphenTok
+  = AlphTok | NumTok | NonDigitTok | HyphenTok | DotTok
   | SlashTok | LeftParenTok | RightParenTok | UpperTok
-  | SpaceTok | NonSpaceTok
+  | SpaceTok | NonSpaceTok | CharTok
   | OtherTok GeneralCategory
   deriving (Eq, Show)
 
@@ -38,8 +34,10 @@ isCls = \case
   NumTok -> isDigit
   NonDigitTok -> not . isDigit
   HyphenTok -> (== DashPunctuation) . generalCategory
+  DotTok -> (== '.')
   SpaceTok -> (== Space) . generalCategory
   NonSpaceTok -> (/= Space) . generalCategory
+  CharTok -> isPrint
   SlashTok -> (== '/')
   LeftParenTok -> (== '(')
   RightParenTok -> (== ')')
@@ -50,7 +48,7 @@ data Pos
   = CPos Int
   | Pos RegExp RegExp IntExpr
 
-newtype StringExpr = Switch [(Predicate, TraceExpr)]
+newtype Expr = Switch [(Predicate, TraceExpr)]
 type Predicate = [[Match]] -- disjunction of conjunctions
 
 data IntExpr
@@ -59,7 +57,7 @@ data IntExpr
 
 data Match
   = Match Input RegExp Int
-  | NotMatch Input RegExp Int
+  | NoMatch Input RegExp Int
 
 newtype TraceExpr = Concat [AtomicExpr]
 

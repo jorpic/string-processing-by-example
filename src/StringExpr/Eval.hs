@@ -2,6 +2,7 @@ module StringExpr.Eval
   ( EvalContext
   , EvalErr
   , runEval
+  , evalExpr
   , evalAtomic
   , evalPos
   , matchesPrefix
@@ -36,6 +37,9 @@ runEval f xs
   $ EvalContext
     (map (`T.snoc` '\n') xs) -- FIXME: adding '\n' to each string as a marker for EndTok
     IntMap.empty
+
+evalExpr :: EvalM m => Expr -> m Text
+evalExpr (Switch _) = throwError "NOT IMPLEMENTED"
 
 evalAtomic :: EvalM m => AtomicExpr -> m Text
 evalAtomic = \case
