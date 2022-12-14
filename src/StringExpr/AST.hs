@@ -27,7 +27,8 @@ data Token
 -- Whitespace characters, All characters.
 data CharClass
   = AlphTok | NumTok | NonDigitTok | HyphenTok
-  | SlashTok | UpperTok
+  | SlashTok | LeftParenTok | RightParenTok | UpperTok
+  | SpaceTok | NonSpaceTok
   | OtherTok GeneralCategory
   deriving (Eq, Show)
 
@@ -37,7 +38,11 @@ isCls = \case
   NumTok -> isDigit
   NonDigitTok -> not . isDigit
   HyphenTok -> (== DashPunctuation) . generalCategory
+  SpaceTok -> (== Space) . generalCategory
+  NonSpaceTok -> (/= Space) . generalCategory
   SlashTok -> (== '/')
+  LeftParenTok -> (== '(')
+  RightParenTok -> (== ')')
   UpperTok -> isUpper
   OtherTok c -> (== c) . generalCategory
 
@@ -67,6 +72,3 @@ data AtomicExpr
   -- SubStr(inp, CPos(0), CPos(-1)) == inp
   -- SubStr2 inp r c := SubStr(inp, Pos(ε, r, c), Pos(r, ε, c))
   | Loop LoopVar TraceExpr
-
-substr2 :: Input -> RegExp -> IntExpr -> AtomicExpr
-substr2 i r c = SubStr i (Pos [] r c) (Pos r [] c)

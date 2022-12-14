@@ -26,6 +26,7 @@ library
   exposed-modules:
       StringExpr
       StringExpr.AST
+      StringExpr.Builder
       StringExpr.Eval
   other-modules:
       Paths_string_processing_by_example
@@ -37,6 +38,7 @@ library
       NamedFieldPuns
       NoMonomorphismRestriction
       FlexibleContexts
+      FlexibleInstances
       OverloadedStrings
       RecordWildCards
       TupleSections
@@ -62,6 +64,7 @@ executable string-processing-by-example
       NamedFieldPuns
       NoMonomorphismRestriction
       FlexibleContexts
+      FlexibleInstances
       OverloadedStrings
       RecordWildCards
       TupleSections
@@ -85,6 +88,7 @@ test-suite string-processing-by-example-test
       NamedFieldPuns
       NoMonomorphismRestriction
       FlexibleContexts
+      FlexibleInstances
       OverloadedStrings
       RecordWildCards
       TupleSections

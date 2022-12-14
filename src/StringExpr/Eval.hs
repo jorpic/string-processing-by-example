@@ -31,13 +31,15 @@ type EvalT m a = ReaderT EvalContext (ExceptT EvalErr m) a
 type EvalM m = (MonadReader EvalContext m, MonadError EvalErr m)
 
 runEval :: EvalT Identity a -> [Text] -> Either EvalErr a
-runEval f xt
+runEval f xs
   = runIdentity $ runExceptT $ runReaderT f
-  $ EvalContext xt IntMap.empty
-
+  $ EvalContext
+    (map (`T.snoc` '\n') xs) -- FIXME: adding '\n' to each string as a marker for EndTok
+    IntMap.empty
 
 evalAtomic :: EvalM m => AtomicExpr -> m Text
 evalAtomic = \case
+  ConstStr s -> pure s
   SubStr (Input i) start end -> do
     txt <- asks ((!! i) . inputs) >>= liftError show
     substr txt
@@ -66,6 +68,8 @@ evalInt = \case
       >>= maybe (throwError $ "loop var is out of range " ++ show var) pure
     pure $ a * val + b
 
+-- NB. in `Pos _ _ c` the offset `c` is zero-based in this implementation, but
+-- in the paper it is one-based.
 evalPos :: EvalM m => Text -> Pos -> m Int
 evalPos t = \case
   CPos p
@@ -75,11 +79,10 @@ evalPos t = \case
     where
       len = T.length t
   Pos rxa rxb c -> do
-    -- split "abc" == [(0,"a","abc"),(1,"ab","bc"),(2,"abc","c")]
-    let split s = zip3 [0..] (tail $ T.inits s) (T.tails s)
     let matches =
           [ i
-          | (i, a, b) <- split t
+          | i <- [0 .. T.length t]
+          , let (a, b) = T.splitAt i t
           , rxa `matchesSuffix` a
           , rxb `matchesPrefix` b
           ]
@@ -93,6 +96,7 @@ matchesChar = \case
   SomeNotOf cls -> not . isCls cls
   _ -> const False
 
+-- FIXME: StartTok and EndTok are not implemented
 matchesPrefix :: RegExp -> Text -> Bool
 matchesPrefix [] _ = True
 matchesPrefix (r : rx) txt
@@ -105,7 +109,7 @@ matchesSuffix rx = matchesPrefix (reverse rx) . T.reverse
 
 
 substr :: Text -> Int -> Int -> Text
-substr txt start end = T.take (end - start + 1) $ T.drop start txt
+substr txt start end = T.take (end - start) $ T.drop start txt
 
 liftError :: MonadError e' m => (e -> e') -> Either e x -> m x
 liftError f = liftEither .  either (Left . f) pure

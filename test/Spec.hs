@@ -2,12 +2,16 @@ import Data.Text (Text)
 import  Test.Hspec
 
 import StringExpr
+import StringExpr.Builder
 
 main :: IO ()
 main = hspec spec
 
 eval :: [Text] -> AtomicExpr -> Either EvalErr Text
 eval t p = runEval (evalAtomic p) t
+
+checkEval :: AtomicExpr -> [Text] -> Text -> Expectation
+checkEval p t r = eval t p `shouldBe` Right r
 
 spec :: Spec
 spec = do
@@ -49,33 +53,39 @@ spec = do
     it "5" $ no $ ex `matchesPrefix` "-12a"
 
   describe "example #2 from the paper" $ do
-    let p = SubStr
-            (Input 0)
-            (Pos [] [SomeOf NumTok] (IntConst 0))
-            (CPos (-1))
-    it "1" $ eval ["BTR KRNL WK CORN 15Z"]      p `shouldBe` Right "15Z"
-    it "2" $ eval ["CAMP DRY DBL NDL 3.6 OZ"]   p `shouldBe` Right "3.6 OZ"
-    it "3" $ eval ["CHORE BOY HD SC SPNG 1 PK"] p `shouldBe` Right "1 PK"
-    it "4" $ eval ["FRENCH WORCESTERSHIRE 5 Z"] p `shouldBe` Right "5 Z"
-    it "5" $ eval ["O F TOMATO PASTE 6 OZ"]     p `shouldBe` Right "6 OZ"
+    let p = substr (pos eps [NumTok] (0 :: Int)) (-1 :: Int)
+    it "1" $ checkEval p ["BTR KRNL WK CORN 15Z"]      "15Z"
+    it "2" $ checkEval p ["CAMP DRY DBL NDL 3.6 OZ"]   "3.6 OZ"
+    it "3" $ checkEval p ["CHORE BOY HD SC SPNG 1 PK"] "1 PK"
+    it "4" $ checkEval p ["FRENCH WORCESTERSHIRE 5 Z"] "5 Z"
+    it "5" $ checkEval p ["O F TOMATO PASTE 6 OZ"]     "6 OZ"
 
   describe "example #3 from the paper" $ do
-    let p = SubStr
-            (Input 0)
-            (CPos 0)
-            (Pos [SomeOf SlashTok] [] (IntConst (-1)))
-    it "1" $ eval ["Company/Code/index.html"] p
-      `shouldBe` Right "Company/Code/"
-    it "2" $ eval ["Company/Docs/Spec/specs.doc"] p
-      `shouldBe` Right "Company/Docs/Spec/"
+    let p = substr (0 :: Int) (pos [SlashTok] eps (-1 :: Int))
+    it "1" $ checkEval p ["Company/Code/index.html"]     "Company/Code/"
+    it "2" $ checkEval p ["Company/Docs/Spec/specs.doc"] "Company/Docs/Spec/"
 
   describe "example #4 from the paper" $ do
-    let w = LoopVar 0
-    let p = Loop w
-            (Concat [substr2 (Input 0) [SomeOf UpperTok] (IntExpr 1 w 0)])
-    it "1" $ eval ["International Business Machines"] p
-      `shouldBe` Right "IBM"
-    it "2" $ eval ["Principles Of Programming Languages"] p
-      `shouldBe` Right "POPL"
-    it "3" $ eval ["International Conference on Software Engineering"] p
-      `shouldBe` Right "ICSE"
+    let p = loop 0 $ \w -> [substr2 [UpperTok] w]
+    it "1" $ checkEval p ["International Business Machines"]                  "IBM"
+    it "2" $ checkEval p ["Principles Of Programming Languages"]              "POPL"
+    it "3" $ checkEval p ["International Conference on Software Engineering"] "ICSE"
+
+  describe "example #5 from the paper" $ do
+    let pos1 = pos [LeftParenTok] [NumTok, SlashTok]
+    let pos2 = pos [SlashTok, NumTok] [RightParenTok]
+    let p = loop 0 $ \w -> [substr (pos1 w) (pos2 w), ConstStr " # "]
+    it "1" $ checkEval p ["(6/7)(4/5)(14/1)"] "6/7 # 4/5 # 14/1 # "
+    it "2" $ checkEval p ["49(28/11)(14/1)"]  "28/11 # 14/1 # "
+    it "3" $ checkEval p ["() (28/11)(14/1)"] "28/11 # 14/1 # "
+
+  describe "example #6 from the paper" $ do
+    let pos1 = pos eps [NonSpaceTok]
+    let pos2 = pos [NonSpaceTok] [SpaceTok, NonSpaceTok]
+    let p = loop 0 $ \w ->
+            [ substr (pos1 w) (pos2 w)
+            , ConstStr " "
+            , substr2 [NonSpaceTok] (-1 :: Int)
+            ]
+    it "1" $ checkEval p ["    Oege   de     Moor  "]         "Oege de Moor"
+    it "2" $ checkEval p ["Kathleen   Fisher    AT&T Labs "]  "Kathleen Fisher AT&T Labs"
