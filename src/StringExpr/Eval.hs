@@ -11,7 +11,7 @@ module StringExpr.Eval
 import Prelude hiding ((!!))
 import Control.Monad.Except
 import Control.Monad.Reader
-import Control.Monad.Writer.Lazy -- (tell, execWriterT)
+import Control.Monad.Writer.Lazy (MonadWriter, tell, execWriterT)
 import Data.Functor.Identity
 import Data.List.Safe ((!!))
 import Data.Text (Text)
@@ -47,10 +47,11 @@ evalAtomic = \case
     let setLoopVarTo i c = c {loopVars = IntMap.insert v i $ loopVars c}
     let whileNotErr = (`catchError` (\_ -> pure ()))
     let iter :: (MonadWriter Text m, EvalM m) => Int -> m ()
+        iter 42 = pure () -- limit recursion depth
         iter i = local (setLoopVarTo i)
           $ whileNotErr
           $ evalTrace f >>= tell >> iter (i+1)
-    -- writer here concats results of successful iterations
+    -- MonadWriter concatenates results of successful iterations
     execWriterT $ iter 0
 
 evalTrace :: EvalM m => TraceExpr -> m Text
